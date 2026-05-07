@@ -85,7 +85,7 @@ export default function Register() {
         <img 
           src={backheadImage} 
           alt="Background" 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-right"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90"></div>
       </div>
