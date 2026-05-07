@@ -71,7 +71,7 @@ export default function LoginAdmin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-end relative overflow-hidden pr-8 lg:pr-20">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <img 
@@ -83,7 +83,7 @@ export default function LoginAdmin() {
       </div>
 
       {/* Login Card */}
-      <div className="relative z-10 w-full max-w-md mx-4">
+      <div className="relative z-10 w-full max-w-md">
         <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20">
           {/* Logo */}
           <div className="flex justify-center mb-6">
