@@ -71,7 +71,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-end relative overflow-hidden pr-8 lg:pr-20">
+    <div className="min-h-screen flex items-center justify-start relative overflow-hidden pl-8 lg:pl-20">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <img 
