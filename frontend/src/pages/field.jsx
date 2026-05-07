@@ -3,9 +3,12 @@ import "../Styles/tailwind.css";
 import { Search, Plus, X, ChevronDown, Trash2, Edit, FileText, History, Bell, Clock } from "lucide-react";
 import axios from "axios";
 import {getToday} from "../utils/leadutil";
+import { useAuth } from "../auth/AuthContext";
 
 
 const Fields = () =>{
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
      const [open, setOpen] = useState(false);
     const tabopen = () => {
     setOpen(true);
@@ -52,8 +55,18 @@ const Fields = () =>{
  const [leadReminders, setLeadReminders] = useState([]);
 
 const fetchFields = async () => {
-  const res = await axios.get("http://localhost:3000/api/fields");
-  setFields(res.data);
+  const params = isAdmin ? {} : { user_id: user?.id, role: "user", user_name: user?.name };
+  const res = await axios.get("http://localhost:3000/api/fields", { params });
+  // For non-admin users, ensure we only show their data
+  if (!isAdmin && user?.name) {
+    const filtered = res.data.filter(f => 
+      (f.staff_name && f.staff_name.toLowerCase().includes(user.name.toLowerCase())) ||
+      (f.created_by && f.created_by.toLowerCase().includes(user.name.toLowerCase()))
+    );
+    setFields(filtered);
+  } else {
+    setFields(res.data);
+  }
 };
 
 const fetchMissedCounts = async () => {

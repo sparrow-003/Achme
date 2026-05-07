@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Home, Users, ListTodo, Phone, ShoppingCart,
-  FileText, Briefcase, Headphones, Users2, BarChart2, ChevronDown, Wrench, Bell
+  FileText, Briefcase, Headphones, Users2, BarChart2, ChevronDown, Wrench, Bell, TargetIcon
 } from "lucide-react";
 import "../Styles/tailwind.css";
 import { Link } from "react-router-dom";
@@ -33,6 +33,7 @@ const Sidebar = ({ onNavigate }) => {
   const menu = [
     { icon: <Home size={20} />, title: "Dashboard", path: "/dashboard" },
     { icon: <Bell size={20} />, title: "Notifications", path: "/dashboard/notifications", badge: pendingCount },
+    { icon: <TargetIcon size={20} />, title: "Targets", path: "/dashboard/targets" },
     { icon: <Users size={20} />, title: "Customers", subitems: [{label: "Clients", path: "/dashboard/clients"}] },
     { icon: <ListTodo size={20} />, title: "Tasks", label:"Task", path:"/dashboard/task" },
     { icon: <Phone size={20} />, title: "Leads", 

@@ -40,6 +40,58 @@ CREATE TABLE IF NOT EXISTS notifications (
   is_read TINYINT(1) DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 4. Task Targets Table
+CREATE TABLE IF NOT EXISTS task_targets (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT,
+  user_name VARCHAR(255),
+  yearly_target INT DEFAULT 0,
+  monthly_target INT DEFAULT 0,
+  created_by_admin VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 5. Task Achievements Table
+CREATE TABLE IF NOT EXISTS task_achievements (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT,
+  user_name VARCHAR(255),
+  target_id INT,
+  month_year VARCHAR(7),
+  achieved_count INT DEFAULT 0,
+  daily_achievements JSON,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 6. Task Updates Table
+CREATE TABLE IF NOT EXISTS task_updates (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT,
+  user_name VARCHAR(255),
+  target_id INT,
+  month_year VARCHAR(7),
+  count INT,
+  description TEXT,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 7. Task Assignments Table
+CREATE TABLE IF NOT EXISTS task_assignments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  task_id INT,
+  assigned_to_user_id INT,
+  assigned_to_user_name VARCHAR(255),
+  assigned_by VARCHAR(255),
+  status ENUM('Pending', 'In Progress', 'Completed') DEFAULT 'Pending',
+  assigned_date DATE,
+  due_date DATE,
+  priority ENUM('Low', 'Normal', 'High', 'Urgent') DEFAULT 'Normal',
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 `;
 
 db.connect((err) => {

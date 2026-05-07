@@ -8,8 +8,8 @@ router.get("/", (req, res) => {
   let sql = "SELECT * FROM Walkins";
   const params = [];
   if (role === "user" && user_name) {
-    sql += " WHERE staff_name = ? OR assigned_to = ?";
-    params.push(user_name, user_id || 0);
+    sql += " WHERE staff_name LIKE ? OR assigned_to = ?";
+    params.push(`%${user_name}%`, user_id || 0);
   }
   sql += " ORDER BY id DESC";
   db.query(sql, params, (err, results) => {

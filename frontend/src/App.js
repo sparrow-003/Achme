@@ -30,6 +30,7 @@ import PerformaInvoice from "./pages/performainvoice";
 import Reports from "./pages/reports";
 import InvoicePreview from "./pages/invoicepreview";
 import AdminNotifications from "./pages/adminnotifications";
+import Targets from "./pages/target";
 
 const API_BACKEND = "http://localhost:5000";
 const CHECK_INTERVAL_ONLINE = 2 * 60 * 60 * 1000; // 2 hours when online
@@ -121,9 +122,10 @@ export default function App() {
               <Route path="performainvoice" element={<PerformaInvoice />} />
               <Route path="estimateinvoice" element={<EstimateInvoice />} />
               <Route path="serviceestimation" element={<ServiceEstimation />} />
-              <Route path="call-report" element={<CallReport />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="notifications" element={<AdminNotifications />} />
+<Route path="call-report" element={<CallReport />} />
+               <Route path="reports" element={<Reports />} />
+               <Route path="targets" element={<Targets />} />
+               <Route path="notifications" element={<AdminNotifications />} />
             </Route>
           </Routes>
         </BrowserRouter>

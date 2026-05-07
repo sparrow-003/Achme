@@ -8,7 +8,8 @@ import {
   Users2,
   BarChart2,
   ChevronDown,
-  Headphones
+  Headphones,
+  TargetIcon
 } from "lucide-react";
 import "../Styles/tailwind.css"
 import { Link } from "react-router-dom";
@@ -19,6 +20,7 @@ const UserSidebar  = ({ onNavigate }) => {
 
   const menu = [
     { icon: <Home size={20} />, title: "Dashboard",path: "/dashboard" },
+    { icon: <TargetIcon size={20} />, title: "My Targets", path: "/dashboard/targets" },
     { icon: <Users size={20} />, title: "Customers", subitems: [{label: "Clients", path: "/dashboard/clients"}, {label: "Client Users", path: "/dashboard/client-users"}] },
      { icon: <ListTodo size={20} />, title: "Tasks", label:"Task", path:"/dashboard/task" },
      { icon: <Phone size={20} />, title: "Leads", 

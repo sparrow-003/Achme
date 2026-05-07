@@ -98,10 +98,19 @@ const formatReminderDate = (dateStr) => {
  
   // Fetch all data
 
-    const fetchTelecalls = async () => {
+const fetchTelecalls = async () => {
     const params = isAdmin ? {} : { user_id: user?.id, role: "user", user_name: user?.name };
     const res = await axios.get("http://localhost:3000/api/Telecalls", { params });
-    setTelecall(res.data);
+    // For non-admin users, ensure we only show their data
+    if (!isAdmin && user?.name) {
+      const filtered = res.data.filter(t => 
+        (t.staff_name && t.staff_name.toLowerCase().includes(user.name.toLowerCase())) ||
+        (t.created_by && t.created_by.toLowerCase().includes(user.name.toLowerCase()))
+      );
+      setTelecall(filtered);
+    } else {
+      setTelecall(res.data);
+    }
   };
 
   const fetchMissedCounts = async () => {

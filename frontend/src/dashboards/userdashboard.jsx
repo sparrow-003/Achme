@@ -23,28 +23,25 @@ const Dashboard = () => {
     const [activeTelecall, setActiveTelecall] = useState("New");
     const [activeWalkin, setActiveWalkin] = useState("New");
     const [activeField, setActiveField] = useState("New");
-   
-    const currentUserEmail = user?.email || "";
+  
     const currentUserName = user?.name || user?.email?.split("@")[0] || "User";
- 
+  
+  const today = getToday();
 
-
- const today = getToday();
-
-  /*  FETCH */
-
-  const fetchAll = async () => {
+  /*  FETCH - Filter by current user */
+  
+   const fetchAll = async () => {
     try {
       const [t, w, f] = await Promise.all([
-        axios.get(`${API_BACKEND}/api/Telecalls`),
-        axios.get(`${API_BACKEND}/api/Walkins`),
-        axios.get(`${API_BACKEND}/api/Fields`),
+        axios.get(`${API_BACKEND}/api/Telecalls?user_id=${user?.id}&role=user&user_name=${encodeURIComponent(user?.name || "")}`),
+        axios.get(`${API_BACKEND}/api/Walkins?user_id=${user?.id}&role=user&user_name=${encodeURIComponent(user?.name || "")}`),
+        axios.get(`${API_BACKEND}/api/Fields?user_id=${user?.id}&role=user&user_name=${encodeURIComponent(user?.name || "")}`),
       ]);
-
-      // Filter data for current user
-      const userLeads = t.data.filter(l => l.assigned_to === currentUserEmail || l.created_by === currentUserEmail);
-      const userWalkins = w.data.filter(w => w.assigned_to === currentUserEmail || w.created_by === currentUserEmail);
-      const userFields = f.data.filter(f => f.assigned_to === currentUserEmail || f.created_by === currentUserEmail);
+      
+      // Only show data assigned to or created by this user
+      const userLeads = t.data;
+      const userWalkins = w.data;
+      const userFields = f.data;
 
       setLeads(userLeads);
       setWalkins(userWalkins);
@@ -54,13 +51,13 @@ const Dashboard = () => {
       // Try via proxy
       try {
         const [t, w, f] = await Promise.all([
-          axios.get("/api/Telecalls"),
-          axios.get("/api/Walkins"),
-          axios.get("/api/Fields"),
+          axios.get(`/api/Telecalls?user_id=${user?.id}&role=user&user_name=${encodeURIComponent(user?.name || "")}`),
+          axios.get(`/api/Walkins?user_id=${user?.id}&role=user&user_name=${encodeURIComponent(user?.name || "")}`),
+          axios.get(`/api/Fields?user_id=${user?.id}&role=user&user_name=${encodeURIComponent(user?.name || "")}`),
         ]);
-        setLeads(t.data.filter(l => l.assigned_to === currentUserEmail || l.created_by === currentUserEmail));
-        setWalkins(w.data.filter(w => w.assigned_to === currentUserEmail || w.created_by === currentUserEmail));
-        setFields(f.data.filter(f => f.assigned_to === currentUserEmail || f.created_by === currentUserEmail));
+        setLeads(t.data);
+        setWalkins(w.data);
+        setFields(f.data);
       } catch (err2) {
         console.error("Fallback also failed:", err2);
       }

@@ -31,52 +31,59 @@ const Dashboard = () => {
   const [performaInvoices, setPerformaInvoices] = useState([]);
   const [escalations, setEscalations] = useState([]);
   const [showEscalations, setShowEscalations] = useState(false);
-
+  const [pendingRegistrations, setPendingRegistrations] = useState([]);
+  const [activeTab1, setActiveTab1] = useState("New");
+  const [selectedUser, setSelectedUser] = useState("all");
   const [activeTelecall, setActiveTelecall] = useState("New");
   const [activeWalkin, setActiveWalkin] = useState("New");
   const [activeField, setActiveField] = useState("New");
-  const [activeTab1, setActiveTab1] = useState("New");
 
   const today = getToday();
 
   /* ================= FETCH ================= */
   const fetchAll = async () => {
     try {
-      const [t, w, f, tm, pi] = await Promise.all([
+      const [t, w, f, tm, pi, pending, esc] = await Promise.all([
         axios.get(`${API_BACKEND}/api/Telecalls`),
         axios.get(`${API_BACKEND}/api/Walkins`),
         axios.get(`${API_BACKEND}/api/Fields`),
         axios.get(`${API_BACKEND}/api/teammember`),
         axios.get(`${API_BACKEND}/api/performainvoice`),
+        axios.get(`${API_BACKEND}/api/auth/pending-users`),
+        axios.get(`${API_BACKEND}/api/leads/escalations`)
       ]);
       setLeads(t.data);
       setWalkins(w.data);
       setFields(f.data);
       setTeam(tm.data);
       setPerformaInvoices(pi.data);
+      setPendingRegistrations(pending.data);
+      setEscalations(esc.data);
       
-      // Check missed reminders and fetch escalations
+      // Check missed reminders
       try {
         await axios.post(`${API_BACKEND}/api/leads/check-missed`);
-        const esc = await axios.get(`${API_BACKEND}/api/leads/escalations`);
-        setEscalations(esc.data);
       } catch (_) {}
     } catch (err) {
       console.error("Dashboard fetch error:", err);
       // Try via proxy
       try {
-        const [t, w, f, tm, pi] = await Promise.all([
+        const [t, w, f, tm, pi, pending, esc] = await Promise.all([
           axios.get("/api/Telecalls"),
           axios.get("/api/Walkins"),
           axios.get("/api/Fields"),
           axios.get("/api/teammember"),
           axios.get("/api/performainvoice"),
+          axios.get("/api/auth/pending-users"),
+          axios.get("/api/leads/escalations")
         ]);
         setLeads(t.data);
         setWalkins(w.data);
         setFields(f.data);
         setTeam(tm.data);
         setPerformaInvoices(pi.data);
+        setPendingRegistrations(pending.data);
+        setEscalations(esc.data);
       } catch (err2) {
         console.error("Fallback also failed:", err2);
       }
@@ -91,10 +98,22 @@ const Dashboard = () => {
     return () => window.removeEventListener("refresh-dashboard", refresh);
   }, []);
 
-  /* TODAY COUNTS */
-  const todaysTelecallsData = leads.filter(l => normalizeDate(l.call_date) === today);
-  const todaysWalkinsData = walkins.filter(w => normalizeDate(w.walkin_date) === today);
-  const todaysFieldsData = fields.filter(f => normalizeDate(f.visit_date) === today);
+  /* GET UNIQUE STAFF NAMES FOR FILTER */
+  const uniqueStaff = [...new Set([
+    ...leads.map(l => l.staff_name).filter(Boolean),
+    ...walkins.map(w => w.staff_name).filter(Boolean),
+    ...fields.map(f => f.staff_name).filter(Boolean),
+    ...team.map(t => t.emp_name || t.first_name).filter(Boolean)
+  ])];
+
+  /* TODAY COUNTS - Filter by selected user */
+  const userFilteredLeads = selectedUser === "all" ? leads : leads.filter(l => (l.staff_name || l.created_by || "").toLowerCase().includes(selectedUser.toLowerCase()));
+  const userFilteredWalkins = selectedUser === "all" ? walkins : walkins.filter(w => (w.staff_name || w.created_by || "").toLowerCase().includes(selectedUser.toLowerCase()));
+  const userFilteredFields = selectedUser === "all" ? fields : fields.filter(f => (f.staff_name || f.created_by || "").toLowerCase().includes(selectedUser.toLowerCase()));
+
+  const todaysTelecallsData = userFilteredLeads.filter(l => normalizeDate(l.call_date) === today);
+  const todaysWalkinsData = userFilteredWalkins.filter(w => normalizeDate(w.walkin_date) === today);
+  const todaysFieldsData = userFilteredFields.filter(f => normalizeDate(f.visit_date) === today);
 
   const telecallToday = departmentCount(todaysTelecallsData, "call_outcome");
   const walkinToday = departmentCount(todaysWalkinsData, "walkin_status");
@@ -269,9 +288,55 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Pending Registration Notifications */}
+      {pendingRegistrations.length > 0 && (
+        <div className="max-w-4xl mx-auto mb-6 rounded-xl border border-orange-200 bg-orange-50/40 p-5 shadow-sm">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-base font-bold text-orange-700 flex items-center gap-2">
+              ⏳ Pending User Approvals
+              <span className="bg-orange-600 text-white text-xs px-2 py-0.5 rounded-full">{pendingRegistrations.length}</span>
+            </h2>
+            <button 
+              onClick={() => navigate("/dashboard/notifications")}
+              className="text-xs text-orange-600 font-bold hover:underline"
+            >
+              View All →
+            </button>
+          </div>
+          <div className="space-y-2">
+            {pendingRegistrations.slice(0, 3).map(reg => (
+              <div key={reg.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-orange-100">
+                <div>
+                  <p className="font-medium text-gray-800">{reg.first_name} <span className="text-gray-400 text-sm">({reg.email})</span></p>
+                  <p className="text-xs text-gray-500">Requested: {new Date(reg.created_at).toLocaleDateString("en-IN")}</p>
+                </div>
+                <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full">Pending</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* User Filter */}
+      <div className="max-w-4xl mx-auto mb-6 flex items-center gap-4">
+        <label className="text-sm font-medium text-gray-600">Filter by User:</label>
+        <select 
+          value={selectedUser} 
+          onChange={(e) => setSelectedUser(e.target.value)}
+          className="border rounded-lg px-3 py-2 bg-white text-sm outline-none"
+        >
+          <option value="all">All Users</option>
+          {uniqueStaff.map((staff, idx) => (
+            <option key={idx} value={staff}>{staff}</option>
+          ))}
+        </select>
+      </div>
+
       {/* LEAD SUMMARY CARD */}
       <div className={`max-w-4xl mx-auto p-6 md:p-8 rounded-xl bg-shell text-shell-text shadow-lg transition-all ${highlight("lead-summary")} ${dimmed("lead-summary")}`}>
-        <h2 className="text-center font-semibold text-lg mb-6">Lead Summary</h2>
+        <h2 className="text-center font-semibold text-lg mb-6">
+          Lead Summary {selectedUser !== "all" && <span className="text-blue-400">- {selectedUser}</span>}
+        </h2>
         <div className="flex justify-center gap-8 md:gap-14">
           {leadTabs.map((item) => (
             <div key={item.label} className="cursor-pointer text-center" onClick={() => setActiveTab1(item.label)}>

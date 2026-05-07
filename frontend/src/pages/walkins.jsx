@@ -55,11 +55,20 @@ const [newReminderTime, setNewReminderTime] = useState("");
 const [newReminderNote, setNewReminderNote] = useState("");
 const [leadReminders, setLeadReminders] = useState([]);
 
-   const fetchWalkins = async () => {
+const fetchWalkins = async () => {
   try {
-    const params = isAdmin ? {} : { user_id: user?.id, role: "user" };
+    const params = isAdmin ? {} : { user_id: user?.id, role: "user", user_name: user?.name };
     const res = await axios.get("http://localhost:3000/api/Walkins", { params });
-    setWalkins(res.data);
+    // For non-admin users, ensure we only show their data
+    if (!isAdmin && user?.name) {
+      const filtered = res.data.filter(w => 
+        (w.staff_name && w.staff_name.toLowerCase().includes(user.name.toLowerCase())) ||
+        (w.created_by && w.created_by.toLowerCase().includes(user.name.toLowerCase()))
+      );
+      setWalkins(filtered);
+    } else {
+      setWalkins(res.data);
+    }
   } catch (err) { console.error(err.message); }
 };
 

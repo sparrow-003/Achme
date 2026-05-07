@@ -46,6 +46,7 @@ app.use("/api/service-estimation", require("./routes/serviceEstimationRoutes"));
 app.use("/api/call-reports", require("./routes/callReportRoutes"));
 app.use("/api/services", require("./routes/serviceRoutes"));
 app.use("/api/leads", require("./routes/leadManagementRoutes"));
+app.use("/api/targets", require("./routes/targetRoutes"));
 
 // Start reminder escalation scheduler
 require("./backendutil/reminderScheduler");
