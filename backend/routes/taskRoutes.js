@@ -168,60 +168,102 @@ router.get("/targets", (req, res) => {
   );
 });
 
-/* GET TASK TARGET FOR USER */
+/* GET TASK TARGET FOR USER - With Carry Forward */
 router.get("/targets/my", (req, res) => {
   const { user_name } = req.query;
   if (!user_name) return res.status(400).json({ error: "user_name required" });
 
   const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentYear = new Date().getFullYear();
 
+  // Get current year's target
   db.query(
-    `SELECT t.*, COALESCE(a.achieved_count, 0) as achieved_count,
-      (t.monthly_target - COALESCE(a.achieved_count, 0)) as pending_count
-    FROM task_targets t
-    LEFT JOIN task_achievements a ON t.id = a.target_id AND a.month_year = ?
-    WHERE t.user_name = ?`,
-    [currentMonth, user_name],
-    (err, rows) => {
+    "SELECT id, yearly_target, monthly_target FROM task_targets WHERE user_name = ? AND YEAR(created_at) = ?",
+    [user_name, currentYear],
+    (err, targetRows) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json(rows[0] || null);
+      if (targetRows.length === 0) return res.json(null);
+
+      const targetId = targetRows[0].id;
+      const monthlyTarget = targetRows[0].monthly_target;
+
+      // Check previous month's carry forward
+      const prevMonth = new Date();
+      prevMonth.setMonth(prevMonth.getMonth() - 1);
+      const prevMonthStr = prevMonth.toISOString().slice(0, 7);
+
+      db.query(
+        "SELECT achieved_count FROM task_achievements WHERE user_name = ? AND month_year = ?",
+        [user_name, prevMonthStr],
+        (err2, prevRows) => {
+          let carryForward = 0;
+          if (prevRows.length > 0 && prevRows[0].achieved_count < monthlyTarget) {
+            carryForward = monthlyTarget - prevRows[0].achieved_count;
+          }
+
+          // Get current month's achievement
+          db.query(
+            "SELECT achieved_count FROM task_achievements WHERE user_name = ? AND month_year = ?",
+            [user_name, currentMonth],
+            (err3, currentRows) => {
+              const achievedCount = currentRows.length > 0 ? currentRows[0].achieved_count : 0;
+              const effectiveTarget = monthlyTarget + carryForward;
+              const pendingCount = Math.max(0, effectiveTarget - achievedCount);
+
+              const result = {
+                ...targetRows[0],
+                achieved_count: achievedCount,
+                pending_count: pendingCount,
+                carry_forward: carryForward,
+                effective_target: effectiveTarget,
+                current_month: currentMonth
+              };
+
+              res.json(result);
+            }
+          );
+        }
+      );
     }
   );
 });
 
-/* CREATE/UPDATE TASK TARGET (Admin) */
+/* CREATE/UPDATE TASK TARGET (Admin) - Yearly Based */
 router.post("/targets", (req, res) => {
-  const { user_id, user_name, yearly_target, monthly_target, created_by_admin } = req.body;
+  const { user_id, user_name, yearly_target, created_by_admin } = req.body;
 
   if (!user_name || !yearly_target) {
     return res.status(400).json({ error: "user_name and yearly_target required" });
   }
 
-  // Check if target exists for user
+  const currentYear = new Date().getFullYear();
+  const monthlyTarget = Math.round(yearly_target / 12); // Auto-calculate monthly target
+
+  // Check if target exists for user in current year
   db.query(
-    "SELECT id FROM task_targets WHERE user_name = ?",
-    [user_name],
+    "SELECT id FROM task_targets WHERE user_name = ? AND YEAR(created_at) = ?",
+    [user_name, currentYear],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
 
       if (rows.length > 0) {
-        // Update existing
+        // Update existing (only if same year)
         db.query(
           "UPDATE task_targets SET yearly_target = ?, monthly_target = ?, updated_at = NOW() WHERE id = ?",
-          [yearly_target, monthly_target, rows[0].id],
+          [yearly_target, monthlyTarget, rows[0].id],
           (err2) => {
             if (err2) return res.status(500).json({ error: err2.message });
             res.json({ message: "Target updated", id: rows[0].id });
           }
         );
       } else {
-        // Create new
+        // Create new yearly target
         db.query(
           "INSERT INTO task_targets (user_id, user_name, yearly_target, monthly_target, created_by_admin) VALUES (?, ?, ?, ?, ?)",
-          [user_id, user_name, yearly_target, monthly_target || 0, created_by_admin],
+          [user_id, user_name, yearly_target, monthlyTarget, created_by_admin],
           (err2, result) => {
             if (err2) return res.status(500).json({ error: err2.message });
-            res.json({ message: "Target created", id: result.insertId });
+            res.json({ message: "Yearly target created", id: result.insertId });
           }
         );
       }
@@ -229,7 +271,7 @@ router.post("/targets", (req, res) => {
   );
 });
 
-/* UPDATE TASK ACHIEVEMENT (User) */
+/* UPDATE TASK ACHIEVEMENT (User) - With Carry Forward */
 router.post("/targets/update", (req, res) => {
   const { user_id, user_name, count, description } = req.body;
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -238,40 +280,66 @@ router.post("/targets/update", (req, res) => {
     return res.status(400).json({ error: "user_name and count required" });
   }
 
-  // Get target for user
+  // Get current year's target for user
+  const currentYear = new Date().getFullYear();
   db.query(
-    "SELECT id FROM task_targets WHERE user_name = ?",
-    [user_name],
+    "SELECT id, yearly_target, monthly_target FROM task_targets WHERE user_name = ? AND YEAR(created_at) = ?",
+    [user_name, currentYear],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
-      if (rows.length === 0) return res.status(404).json({ error: "Target not set for user" });
+      if (rows.length === 0) return res.status(404).json({ error: "Yearly target not set for user" });
 
       const targetId = rows[0].id;
+      const monthlyTarget = rows[0].monthly_target;
 
-      // Insert achievement update
+      // Check previous month's carry forward
+      const prevMonth = new Date();
+      prevMonth.setMonth(prevMonth.getMonth() - 1);
+      const prevMonthStr = prevMonth.toISOString().slice(0, 7);
+
       db.query(
-        `INSERT INTO task_updates (user_id, user_name, target_id, month_year, count, description)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [user_id, user_name, targetId, currentMonth, count, description],
-        (err2) => {
-          if (err2) return res.status(500).json({ error: err2.message });
+        "SELECT achieved_count FROM task_achievements WHERE user_name = ? AND month_year = ?",
+        [user_name, prevMonthStr],
+        (err2, prevRows) => {
+          let carryForward = 0;
+          if (prevRows.length > 0 && prevRows[0].achieved_count < monthlyTarget) {
+            carryForward = monthlyTarget - prevRows[0].achieved_count;
+          }
 
-          // Update monthly achievement
+          // Calculate effective target for current month
+          const effectiveTarget = monthlyTarget + carryForward;
+
+          // Insert achievement update
           db.query(
-            `INSERT INTO task_achievements (user_id, user_name, target_id, month_year, achieved_count)
-             VALUES (?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE achieved_count = achieved_count + ?`,
-            [user_id, user_name, targetId, currentMonth, count, count],
+            `INSERT INTO task_updates (user_id, user_name, target_id, month_year, count, description)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [user_id, user_name, targetId, currentMonth, count, description],
             (err3) => {
               if (err3) return res.status(500).json({ error: err3.message });
 
-              // Log activity
+              // Update monthly achievement
               db.query(
-                "INSERT INTO task_activity (task_id, action, message) VALUES (?, ?, ?)",
-                [targetId, "Task Achievement Update", `${user_name} updated achievement by ${count} tasks`]
-              );
+                `INSERT INTO task_achievements (user_id, user_name, target_id, month_year, achieved_count)
+                 VALUES (?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE achieved_count = achieved_count + ?`,
+                [user_id, user_name, targetId, currentMonth, count, count],
+                (err4) => {
+                  if (err4) return res.status(500).json({ error: err4.message });
 
-              res.json({ message: "Achievement updated", target_id: targetId });
+                  // Log activity
+                  db.query(
+                    "INSERT INTO task_activity (task_id, action, message) VALUES (?, ?, ?)",
+                    [targetId, "Task Achievement Update", `${user_name} completed ${count} tasks (effective target: ${effectiveTarget})`]
+                  );
+
+                  res.json({
+                    message: "Achievement updated",
+                    target_id: targetId,
+                    carry_forward: carryForward,
+                    effective_target: effectiveTarget
+                  });
+                }
+              );
             }
           );
         }
