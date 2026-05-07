@@ -71,19 +71,19 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-start relative overflow-hidden pl-8 lg:pl-20">
+    <div className="min-h-screen flex items-center justify-end relative overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <img 
           src={backheadImage} 
           alt="Background" 
-          className="w-full h-full object-cover object-right"
+          className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90"></div>
       </div>
 
-      {/* Login Card */}
-      <div className="relative z-10 w-full max-w-md">
+      {/* Login Card - Right Side */}
+      <div className="relative z-10 w-full max-w-md mx-4 my-auto mr-8 md:mr-16 lg:mr-24">
         <div className="bg-white/10 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20">
           {/* Logo */}
           <div className="flex justify-center mb-6">
