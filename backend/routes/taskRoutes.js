@@ -440,30 +440,103 @@ router.put("/assignment/:id/status", (req, res) => {
     return res.status(400).json({ error: "Invalid status" });
   }
 
+  // First get current assignment info
   db.query(
-    "UPDATE task_assignments SET status = ?, updated_at = NOW() WHERE id = ?",
-    [status, req.params.id],
-    (err) => {
+    "SELECT task_id, assigned_to_user_name, assigned_to_user_id, status as old_status FROM task_assignments WHERE id = ?",
+    [req.params.id],
+    (err, currentRows) => {
       if (err) return res.status(500).json({ error: err.message });
+      if (currentRows.length === 0) return res.status(404).json({ error: "Assignment not found" });
 
-      // Get task info for activity log
+      const assignment = currentRows[0];
+      const wasCompleted = assignment.old_status === "Completed";
+      const nowCompleted = status === "Completed";
+
+      // Update assignment status
       db.query(
-        "SELECT task_id, assigned_to_user_name FROM task_assignments WHERE id = ?",
-        [req.params.id],
-        (err2, rows) => {
-          if (!err2 && rows.length > 0) {
-            db.query(
-              "INSERT INTO task_activity (task_id, action, message) VALUES (?, ?, ?)",
-              [rows[0].task_id, "Status Updated", `Task status updated to ${status} by ${rows[0].assigned_to_user_name}`]
-            );
+        "UPDATE task_assignments SET status = ?, updated_at = NOW() WHERE id = ?",
+        [status, req.params.id],
+        (err2) => {
+          if (err2) return res.status(500).json({ error: err2.message });
+
+          // If status changed to/from Completed, update user achievement
+          if (!wasCompleted && nowCompleted) {
+            // Task just completed - add to achievement
+            updateTaskAchievement(assignment.assigned_to_user_id, assignment.assigned_to_user_name, 1, "Task completed");
+          } else if (wasCompleted && !nowCompleted) {
+            // Task status changed from completed - subtract from achievement
+            updateTaskAchievement(assignment.assigned_to_user_id, assignment.assigned_to_user_name, -1, "Task status changed from completed");
           }
+
+          // Log activity
+          db.query(
+            "INSERT INTO task_activity (task_id, action, message) VALUES (?, ?, ?)",
+            [assignment.task_id, "Status Updated", `Task status updated to ${status} by ${assignment.assigned_to_user_name}`]
+          );
+
+          res.json({ message: "Status updated" });
         }
       );
-
-      res.json({ message: "Status updated" });
     }
   );
 });
+
+// Helper function to update task achievement
+function updateTaskAchievement(user_id, user_name, count, description) {
+  const currentMonth = new Date().toISOString().slice(0, 7);
+
+  // Get current year's target
+  const currentYear = new Date().getFullYear();
+  db.query(
+    "SELECT id, yearly_target, monthly_target FROM task_targets WHERE user_name = ? AND YEAR(created_at) = ?",
+    [user_name, currentYear],
+    (err, targetRows) => {
+      if (err || targetRows.length === 0) return;
+
+      const targetId = targetRows[0].id;
+      const monthlyTarget = targetRows[0].monthly_target;
+
+      // Check previous month's carry forward
+      const prevMonth = new Date();
+      prevMonth.setMonth(prevMonth.getMonth() - 1);
+      const prevMonthStr = prevMonth.toISOString().slice(0, 7);
+
+      db.query(
+        "SELECT achieved_count FROM task_achievements WHERE user_name = ? AND month_year = ?",
+        [user_name, prevMonthStr],
+        (err2, prevRows) => {
+          let carryForward = 0;
+          if (prevRows.length > 0 && prevRows[0].achieved_count < monthlyTarget) {
+            carryForward = monthlyTarget - prevRows[0].achieved_count;
+          }
+
+          // Insert achievement update
+          db.query(
+            `INSERT INTO task_updates (user_id, user_name, target_id, month_year, count, description)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [user_id, user_name, targetId, currentMonth, count, description],
+            () => {
+              // Update monthly achievement
+              db.query(
+                `INSERT INTO task_achievements (user_id, user_name, target_id, month_year, achieved_count)
+                 VALUES (?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE achieved_count = achieved_count + ?`,
+                [user_id, user_name, targetId, currentMonth, count, count],
+                () => {
+                  // Log activity
+                  db.query(
+                    "INSERT INTO task_activity (task_id, action, message) VALUES (?, ?, ?)",
+                    [targetId, "Task Achievement Update", `${user_name} ${description} (${count > 0 ? '+' : ''}${count})`]
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+  );
+}
 
 /* ================= NOTIFICATIONS ================= */
 router.get("/notifications", (req, res) => {
