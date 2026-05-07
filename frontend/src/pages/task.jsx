@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, X, TrendingUp, Target as TargetIcon, Calendar, BarChart3, Users, CheckCircle, User, Award } from "lucide-react";
+import { Search, Plus, X, TrendingUp, Target as TargetIcon, BarChart3, Users, CheckCircle, User, Award } from "lucide-react";
 import "../Styles/tailwind.css";
 import axios from "axios";
 import { useAuth } from "../auth/AuthContext";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from "recharts";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 const Task = () => {
   const { user } = useAuth();
