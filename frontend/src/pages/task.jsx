@@ -33,6 +33,9 @@ const Task = () => {
   const [teamMembers, setTeamMembers] = useState([]);
   const [userPerformance, setUserPerformance] = useState([]);
 
+  // Active tab for admin view
+  const [activeTab, setActiveTab] = useState("overview"); // overview, tasks, targets
+
   const [form, setForm] = useState({
     project_name: "",
     task_title: "",
@@ -314,95 +317,307 @@ const Task = () => {
     <div className="w-full p-4">
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-[#1694CE]">
-          {isAdmin ? "Task & Target Management" : "My Tasks & Targets"}
+          {isAdmin ? "Unified Task & Target Management" : "My Tasks & Targets"}
         </h1>
-        <a className="text-sm text-gray-500" href="/dashboard">Dashboard > Tasks & Targets</a>
+        <a className="text-sm text-gray-500" href="/dashboard">Dashboard > Unified Task & Target Management</a>
       </div>
 
       {/* Admin View */}
       {isAdmin ? (
         <>
+          {/* Tab Navigation */}
+          <div className="bg-white rounded-xl shadow mb-6 overflow-hidden">
+            <div className="flex border-b">
+              <button
+                onClick={() => setActiveTab("overview")}
+                className={`px-6 py-4 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === "overview"
+                    ? "bg-blue-50 text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                <Users size={18} /> Overview
+              </button>
+              <button
+                onClick={() => setActiveTab("tasks")}
+                className={`px-6 py-4 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === "tasks"
+                    ? "bg-blue-50 text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                <CheckCircle size={18} /> Task Management
+              </button>
+              <button
+                onClick={() => setActiveTab("targets")}
+                className={`px-6 py-4 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === "targets"
+                    ? "bg-blue-50 text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                <TargetIcon size={18} /> Target Management
+              </button>
+            </div>
+          </div>
+
           {/* Search + Buttons */}
           <div className="bg-[#F3F8FA] p-4 rounded-xl flex justify-between items-center shadow mb-6">
             <div className="flex items-center gap-3 bg-white px-3 py-2 rounded-lg shadow border w-80">
               <Search size={18} className="text-gray-500" />
               <input
                 type="text"
-                placeholder="Search by project name or user..."
+                placeholder={activeTab === "targets" ? "Search by user name..." : "Search by project name or user..."}
                 className="outline-none text-sm w-full"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={() => setTargetOpen(true)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
-              >
-                <TargetIcon size={18} /> Set Yearly Targets
-              </button>
-              <button
-                onClick={() => { resetForm(); setOpen(true); }}
-                className="bg-[#FF3355] text-white w-12 h-12 rounded-full flex justify-center items-center shadow-lg hover:bg-[#e62848]"
-              >
-                <Plus size={24} />
-              </button>
+              {activeTab === "targets" && (
+                <button
+                  onClick={() => setTargetOpen(true)}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                >
+                  <TargetIcon size={18} /> Set Yearly Targets
+                </button>
+              )}
+              {activeTab === "tasks" && (
+                <button
+                  onClick={() => { resetForm(); setOpen(true); }}
+                  className="bg-[#FF3355] text-white w-12 h-12 rounded-full flex justify-center items-center shadow-lg hover:bg-[#e62848]"
+                >
+                  <Plus size={24} />
+                </button>
+              )}
             </div>
           </div>
 
-          {/* User Performance Cards by Position */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Users className="text-blue-600" /> Team Performance Overview
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {Object.entries(usersByPosition).map(([position, users]) => {
-                const colors = positionColors[position] || positionColors["Staff"];
-                const totalTasks = users.reduce((sum, u) => sum + (u.achieved_count || 0), 0);
-                const totalTarget = users.reduce((sum, u) => sum + (u.monthly_target || 0), 0);
-                const avgPerformance = totalTarget > 0 ? Math.round((totalTasks / totalTarget) * 100) : 0;
+          {/* Tab Content */}
+          {activeTab === "overview" && (
+            <>
+              {/* User Performance Cards by Position */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Users className="text-blue-600" /> Team Performance Overview
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {Object.entries(usersByPosition).map(([position, users]) => {
+                    const colors = positionColors[position] || positionColors["Staff"];
+                    const totalTasks = users.reduce((sum, u) => sum + (u.achieved_count || 0), 0);
+                    const totalTarget = users.reduce((sum, u) => sum + (u.monthly_target || 0), 0);
+                    const avgPerformance = totalTarget > 0 ? Math.round((totalTasks / totalTarget) * 100) : 0;
 
-                return (
-                  <div key={position} className={`${colors.light} ${colors.border} border-2 rounded-xl p-4 shadow-sm`}>
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className={`font-semibold ${colors.text} flex items-center gap-2`}>
-                        <User size={16} />
-                        {position}
-                      </h4>
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${colors.bg} text-white`}>
-                        {users.length}
-                      </span>
-                    </div>
+                    return (
+                      <div key={position} className={`${colors.light} ${colors.border} border-2 rounded-xl p-4 shadow-sm`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className={`font-semibold ${colors.text} flex items-center gap-2`}>
+                            <User size={16} />
+                            {position}
+                          </h4>
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${colors.bg} text-white`}>
+                            {users.length}
+                          </span>
+                        </div>
 
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Completed:</span>
-                        <span className="font-medium text-green-600">{totalTasks}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Target:</span>
-                        <span className="font-medium text-blue-600">{totalTarget}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Performance:</span>
-                        <span className={`font-bold ${avgPerformance >= 80 ? 'text-green-600' : avgPerformance >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          {avgPerformance}%
-                        </span>
-                      </div>
-                    </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Completed:</span>
+                            <span className="font-medium text-green-600">{totalTasks}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Target:</span>
+                            <span className="font-medium text-blue-600">{totalTarget}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Performance:</span>
+                            <span className={`font-bold ${avgPerformance >= 80 ? 'text-green-600' : avgPerformance >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                              {avgPerformance}%
+                            </span>
+                          </div>
+                        </div>
 
-                    {/* Mini progress bar */}
-                    <div className="mt-3 bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`${colors.bg} h-2 rounded-full transition-all duration-300`}
-                        style={{ width: `${Math.min(avgPerformance, 100)}%` }}
-                      ></div>
+                        {/* Mini progress bar */}
+                        <div className="mt-3 bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`${colors.bg} h-2 rounded-full transition-all duration-300`}
+                            style={{ width: `${Math.min(avgPerformance, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-xl p-6 shadow">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="text-green-600" size={32} />
+                    <div>
+                      <p className="text-sm text-gray-600">Total Tasks</p>
+                      <p className="text-2xl font-bold text-gray-800">{tasks.length}</p>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                </div>
+                <div className="bg-white rounded-xl p-6 shadow">
+                  <div className="flex items-center gap-3">
+                    <TargetIcon className="text-blue-600" size={32} />
+                    <div>
+                      <p className="text-sm text-gray-600">Active Targets</p>
+                      <p className="text-2xl font-bold text-gray-800">{taskTargets.length}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-6 shadow">
+                  <div className="flex items-center gap-3">
+                    <Users className="text-purple-600" size={32} />
+                    <div>
+                      <p className="text-sm text-gray-600">Team Members</p>
+                      <p className="text-2xl font-bold text-gray-800">{teamMembers.length}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-6 shadow">
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="text-orange-600" size={32} />
+                    <div>
+                      <p className="text-sm text-gray-600">Avg Performance</p>
+                      <p className="text-2xl font-bold text-gray-800">
+                        {taskTargets.length > 0
+                          ? Math.round(taskTargets.reduce((sum, t) => sum + (t.achieved_count || 0), 0) /
+                                      taskTargets.reduce((sum, t) => sum + (t.monthly_target || 0), 0) * 100)
+                          : 0}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Tasks Tab */}
+          {activeTab === "tasks" && (
+            <>
+              {/* Tasks Kanban Board */}
+              <div className="grid grid-cols-3 gap-6">
+                <div className="bg-[#FFF8F0] rounded-xl shadow p-4 min-h-[300px]">
+                  <h3 className="font-bold text-base mb-4 flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-orange-400 inline-block"></span> New Tasks
+                    <span className="ml-auto bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-full font-semibold">
+                      {tasks.filter(t => t.project_status === "New").length}
+                    </span>
+                  </h3>
+                  {tasks.filter(t => t.project_status === "New" && t.project_name?.toLowerCase().includes(searchTerm.toLowerCase())).map(t => (
+                    <TaskCard key={t.id} t={t} color="orange" isAdmin={true} onAssign={assignTask} teamMembers={teamMembers} />
+                  ))}
+                  {tasks.filter(t => t.project_status === "New").length === 0 &&
+                    <p className="text-xs text-gray-400 text-center py-8">No new tasks</p>
+                  }
+                </div>
+
+                <div className="bg-[#F0F4FF] rounded-xl shadow p-4 min-h-[300px]">
+                  <h3 className="font-bold text-base mb-4 flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> In Process
+                    <span className="ml-auto bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded-full font-semibold">
+                      {tasks.filter(t => t.project_status === "Process").length}
+                    </span>
+                  </h3>
+                  {tasks.filter(t => t.project_status === "Process" && t.project_name?.toLowerCase().includes(searchTerm.toLowerCase())).map(t => (
+                    <TaskCard key={t.id} t={t} color="blue" isAdmin={true} onAssign={assignTask} teamMembers={teamMembers} />
+                  ))}
+                  {tasks.filter(t => t.project_status === "Process").length === 0 &&
+                    <p className="text-xs text-gray-400 text-center py-8">No tasks in process</p>
+                  }
+                </div>
+
+                <div className="bg-[#F0FFF6] rounded-xl shadow p-4 min-h-[300px]">
+                  <h3 className="font-bold text-base mb-4 flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Completed
+                    <span className="ml-auto bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full font-semibold">
+                      {tasks.filter(t => t.project_status === "Completed").length}
+                    </span>
+                  </h3>
+                  {tasks.filter(t => t.project_status === "Completed" && t.project_name?.toLowerCase().includes(searchTerm.toLowerCase())).map(t => (
+                    <TaskCard key={t.id} t={t} color="green" isAdmin={true} onAssign={assignTask} teamMembers={teamMembers} />
+                  ))}
+                  {tasks.filter(t => t.project_status === "Completed").length === 0 &&
+                    <p className="text-xs text-gray-400 text-center py-8">No completed tasks</p>
+                  }
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Targets Tab */}
+          {activeTab === "targets" && (
+            <>
+              {/* Task Targets Table */}
+              <div className="bg-white rounded-xl shadow overflow-x-auto mb-6">
+                <h3 className="text-lg font-semibold p-4 border-b flex items-center gap-2">
+                  <TargetIcon className="text-green-600" /> Yearly Task Targets & Progress
+                  <span className="text-sm text-gray-500 ml-auto">Current Year: {new Date().getFullYear()}</span>
+                </h3>
+                <table className="w-full text-sm border-collapse">
+                  <thead className="bg-gray-50">
+                    <tr className="text-xs uppercase text-gray-500 font-bold border-b">
+                      <th className="p-3 text-left">User</th>
+                      <th className="p-3 text-center">Position</th>
+                      <th className="p-3 text-right">Yearly Target</th>
+                      <th className="p-3 text-right">Monthly Target</th>
+                      <th className="p-3 text-right">Completed (MTD)</th>
+                      <th className="p-3 text-right">Carry Forward</th>
+                      <th className="p-3 text-right">Effective Target</th>
+                      <th className="p-3 text-center">Performance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {taskTargets
+                      .filter(t => t.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                  t.user_name?.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map(t => {
+                        const user = teamMembers.find(tm => `${tm.first_name} ${tm.last_name || ""}`.trim() === t.user_name);
+                        const colors = positionColors[user?.job_title] || positionColors["Staff"];
+                        const carryForward = t.pending_count > 0 ? t.monthly_target - t.achieved_count : 0;
+                        const effectiveTarget = t.monthly_target + carryForward;
+                        const performance = effectiveTarget > 0 ? Math.round((t.achieved_count / effectiveTarget) * 100) : 0;
+
+                        return (
+                          <tr key={t.id} className="border-b hover:bg-gray-50">
+                            <td className="p-3 font-medium">{t.user_name}</td>
+                            <td className="p-3 text-center">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors.bg} text-white`}>
+                                {user?.job_title || "Staff"}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right font-semibold">{t.yearly_target}</td>
+                            <td className="p-3 text-right">{t.monthly_target}</td>
+                            <td className="p-3 text-right text-green-600 font-medium">{t.achieved_count}</td>
+                            <td className="p-3 text-right text-orange-600 font-medium">
+                              {carryForward > 0 ? `+${carryForward}` : "0"}
+                            </td>
+                            <td className="p-3 text-right font-bold text-blue-600">{effectiveTarget}</td>
+                            <td className="p-3 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                  performance >= 100 ? "bg-green-100 text-green-700" :
+                                  performance >= 75 ? "bg-blue-100 text-blue-700" :
+                                  performance >= 50 ? "bg-yellow-100 text-yellow-700" :
+                                  "bg-red-100 text-red-700"
+                                }`}>
+                                  {performance}%
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
 
           {/* Task Targets Table */}
           <div className="bg-white rounded-xl shadow overflow-x-auto mb-6">

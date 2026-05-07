@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   Home, Users, ListTodo, Phone, ShoppingCart,
-  FileText, Briefcase, Headphones, Users2, BarChart2, ChevronDown, Wrench, Bell, TargetIcon
+  FileText, Briefcase, Headphones, Users2, BarChart2, ChevronDown, Wrench, Bell, TargetIcon, ShieldCheck
 } from "lucide-react";
 import "../Styles/tailwind.css";
 import { Link } from "react-router-dom";
@@ -30,27 +30,29 @@ const Sidebar = ({ onNavigate }) => {
     };
   }, []);
 
-  const menu = [
+const menu = [
     { icon: <Home size={20} />, title: "Dashboard", path: "/dashboard" },
     { icon: <Bell size={20} />, title: "Notifications", path: "/dashboard/notifications", badge: pendingCount },
     { icon: <TargetIcon size={20} />, title: "Targets", path: "/dashboard/targets" },
     { icon: <Users size={20} />, title: "Customers", subitems: [{label: "Clients", path: "/dashboard/clients"}] },
-    { icon: <ListTodo size={20} />, title: "Tasks", label:"Task", path:"/dashboard/task" },
-    { icon: <FileText size={20} />, title: "Contracts", path: "/dashboard/contract" },
-    { icon: <Wrench size={20} />, title: "AMC/ALC Services", path: "/dashboard/amc" },
-    { icon: <Phone size={20} />, title: "Leads", 
-     subitems:[
-        {label:"Telecalling Summary",path:"/dashboard/telecalling"}, 
-        {label:"Walkins Summary",path:"/dashboard/walkins"},
-       {label:"Field Work Summary",path:"/dashboard/field"},
-     ]
+    { icon: <ListTodo size={20} />, title: "Tasks", path: "/dashboard/task" },
+    { icon: <ShieldCheck size={20} />, title: "Contracts & AMC", 
+      subitems: [
+        { label: "Contracts", path: "/dashboard/contract" },
+        { label: "AMC/ALC Services", path: "/dashboard/amc" },
+      ]
     },
-
+    { icon: <Phone size={20} />, title: "Leads", 
+      subitems: [
+        { label: "Telecalling", path: "/dashboard/telecalling" },
+        { label: "Walkins", path: "/dashboard/walkins" },
+        { label: "Field Work", path: "/dashboard/field" },
+      ]
+    },
     { icon: <ShoppingCart size={20} />, title: "Sales", subitems: [
       { label: "Estimation", path: "/dashboard/estimateinvoice" },
       { label: "Proforma Invoice", path: "/dashboard/performainvoice" },
     ] },
-
     { icon: <FileText size={20} />, title: "Proposals", path: "/dashboard/proposal" },
     {
       icon: <Wrench size={20} />,
@@ -61,9 +63,10 @@ const Sidebar = ({ onNavigate }) => {
         { label: "Call Report", path: "/dashboard/call-report" },
       ]
     },
-    { icon: <Briefcase size={20} />, title: "Contracts",
-     subitems:[{label:"Contracts", path:"/dashboard/contracts"}] },
-    { icon: <Users2 size={20} />, title: "Team",subitems:[{label: "Team Member", path:"/dashboard/team"},"Time Sheets" ] },
+    { icon: <Users2 size={20} />, title: "Team", subitems: [
+      { label: "Team Members", path: "/dashboard/team" },
+      { label: "Time Sheets", path: "/dashboard/timesheets" },
+    ]},
     { icon: <BarChart2 size={20} />, title: "Reports", path: "/dashboard/reports" }
   ];
 
