@@ -1,0 +1,13 @@
+@echo off
+echo Starting Backend Server...
+cd /d "%~dp0backend"
+start "Backend" cmd /k "npm run dev"
+echo Starting Frontend Server...
+cd /d "%~dp0frontend"
+start "Frontend" cmd /k "npm start"
+echo Servers starting...
+echo Backend: http://localhost:5000
+echo Frontend: http://localhost:3000
+echo.
+echo Press any key to exit...
+pause > nul
