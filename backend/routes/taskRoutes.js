@@ -376,21 +376,31 @@ router.post("/assign", (req, res) => {
     return res.status(400).json({ error: "task_id and assigned_to_user_name required" });
   }
 
+  // First update the task with staff_name
   db.query(
-    `INSERT INTO task_assignments
-     (task_id, assigned_to_user_id, assigned_to_user_name, assigned_by, assigned_date, due_date, priority, notes)
-     VALUES (?, ?, ?, ?, CURDATE(), ?, ?, ?)`,
-    [task_id, assigned_to_user_id, assigned_to_user_name, assigned_by, due_date, priority, notes],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
+    "UPDATE tasks SET staff_name = ? WHERE id = ?",
+    [assigned_to_user_name, task_id],
+    (updateErr) => {
+      if (updateErr) return res.status(500).json({ error: updateErr.message });
 
-      // Update task activity
+      // Then create assignment record
       db.query(
-        "INSERT INTO task_activity (task_id, action, message) VALUES (?, ?, ?)",
-        [task_id, "Task Assigned", `Task assigned to ${assigned_to_user_name}`]
-      );
+        `INSERT INTO task_assignments
+         (task_id, assigned_to_user_id, assigned_to_user_name, assigned_by, assigned_date, due_date, priority, notes)
+         VALUES (?, ?, ?, ?, CURDATE(), ?, ?, ?)`,
+        [task_id, assigned_to_user_id, assigned_to_user_name, assigned_by, due_date, priority, notes],
+        (err, result) => {
+          if (err) return res.status(500).json({ error: err.message });
 
-      res.json({ message: "Task assigned", id: result.insertId });
+          // Update task activity
+          db.query(
+            "INSERT INTO task_activity (task_id, action, message) VALUES (?, ?, ?)",
+            [task_id, "Task Assigned", `Task assigned to ${assigned_to_user_name}`]
+          );
+
+          res.json({ message: "Task assigned", id: result.insertId });
+        }
+      );
     }
   );
 });
