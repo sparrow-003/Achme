@@ -36,6 +36,8 @@ const Sidebar = ({ onNavigate }) => {
     { icon: <TargetIcon size={20} />, title: "Targets", path: "/dashboard/targets" },
     { icon: <Users size={20} />, title: "Customers", subitems: [{label: "Clients", path: "/dashboard/clients"}] },
     { icon: <ListTodo size={20} />, title: "Tasks", label:"Task", path:"/dashboard/task" },
+    { icon: <FileText size={20} />, title: "Contracts", path: "/dashboard/contract" },
+    { icon: <Wrench size={20} />, title: "AMC/ALC Services", path: "/dashboard/amc" },
     { icon: <Phone size={20} />, title: "Leads", 
      subitems:[
         {label:"Telecalling Summary",path:"/dashboard/telecalling"}, 

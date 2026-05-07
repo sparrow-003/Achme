@@ -31,6 +31,7 @@ import Reports from "./pages/reports";
 import InvoicePreview from "./pages/invoicepreview";
 import AdminNotifications from "./pages/adminnotifications";
 import Targets from "./pages/target";
+import AMCService from "./pages/amc";
 
 const API_BACKEND = "http://localhost:5000";
 const CHECK_INTERVAL_ONLINE = 2 * 60 * 60 * 1000; // 2 hours when online
@@ -125,6 +126,7 @@ export default function App() {
 <Route path="call-report" element={<CallReport />} />
                <Route path="reports" element={<Reports />} />
                <Route path="targets" element={<Targets />} />
+               <Route path="amc" element={<AMCService />} />
                <Route path="notifications" element={<AdminNotifications />} />
             </Route>
           </Routes>

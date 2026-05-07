@@ -11,23 +11,24 @@ router.post("/new", (req, res) => {
     start_date,
     end_date,
     amount_value,
-    category
-    
+    category,
+    contract_type,
+    quotation_id
   } = req.body;
 
   if (!client_company || !template_names || !contract_title || !start_date || !end_date || !amount_value || !category) {
-    return res.status(400).json({ message: "project required" });
+    return res.status(400).json({ message: "All fields are required" });
   }
 
   const sql = `
     INSERT INTO contracts
-    (client_company, template_names, contract_title, start_date, end_date, amount_value, category)
-    VALUES (?,?,?,?,?,?,?)
+    (client_company, template_names, contract_title, start_date, end_date, amount_value, category, contract_type, quotation_id)
+    VALUES (?,?,?,?,?,?,?,?,?)
   `;
 
   db.query(
     sql,
-    [client_company, template_names, contract_title, start_date, end_date, amount_value, category],
+    [client_company, template_names, contract_title, start_date, end_date, amount_value, category, contract_type || "Service", quotation_id],
     (err, result) => {
       if (err) {
         console.error(err);
@@ -57,6 +58,8 @@ router.put("/:id", (req, res) => {
     end_date,
     amount_value,
     category,
+    contract_type,
+    quotation_id,
   } = req.body;
 
   db.query(
@@ -67,9 +70,11 @@ router.put("/:id", (req, res) => {
       start_date=?,
       end_date=?,
       amount_value=?,
-      category=?
+      category=?,
+      contract_type=?,
+      quotation_id=?
      WHERE id=?`,
-    [client_company, template_names, contract_title, start_date, end_date,amount_value, category, id],
+    [client_company, template_names, contract_title, start_date, end_date, amount_value, category, contract_type || "Service", quotation_id, id],
     (err) => {
       if (err) return res.status(500).json(err);
       res.json({ message: "Updated" });

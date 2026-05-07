@@ -21,11 +21,14 @@ const Contracts = () => {
   const [category, setCategory] = useState("Default");
   const [Amount,Setamount] = useState("");
    const [isEdit, setIsEdit] = useState(false);
-     const [selectedContaractId, setSelectedContractId] = useState(null);
+      const [selectedContaractId, setSelectedContractId] = useState(null);
+  const [contractType, setContractType] = useState("Service"); // Service, AMC, ALC
+  const [quotationId, setQuotationId] = useState(""); // For converting quotation to contract
   
 
   const [contracts, setcontracts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [quotations, setQuotations] = useState([]);
 
   const formatInvoiceId = (id) => `CO-${String(id).padStart(6, "0")}`;
 
@@ -48,8 +51,18 @@ const Contracts = () => {
   }
 };
 useEffect(() => {
-  fetchContracts();
+    fetchContracts();
+    fetchQuotations();
 }, []);
+
+const fetchQuotations = async () => {
+  try {
+    const response = await axios.get("http://localhost:3000/api/quotations");
+    setQuotations(response.data);
+  } catch (err) {
+    console.log("Fetch quotations error:", err);
+  }
+};
 
 
 
@@ -87,6 +100,8 @@ useEffect(() => {
       end_date: invoiceDueDate,
       amount_value: Amount,
       category,
+      contract_type: contractType,
+      quotation_id: quotationId,
     };
 
     if (isEdit && selectedContaractId) {
@@ -124,10 +139,27 @@ const openEditModal = (p) => {
   setInvoiceDueDate(p.end_date?.split("T")[0] || "");
   Setamount(p.amount_value || "");
   setCategory(p.category || "Default");
+  setContractType(p.contract_type || "Service");
+  setQuotationId(p.quotation_id || "");
 
   setSelectedContractId(p.id);
   setIsEdit(true);
   setOpen(true);
+};
+
+const handleQuotationConversion = (quotationId) => {
+      const quotation = quotations.find(q => q.id === parseInt(quotationId));
+  if (quotation) {
+    setClientSearch(quotation.client_company || quotation.customer_name || "");
+    setProjectname(quotation.project_name || quotation.template_names || "");
+    setContracts(`Contract for ${quotation.project_name || quotation.template_names || "Service"}`);
+    setInvoiceDate(new Date().toISOString().slice(0, 10));
+    setInvoiceDueDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)); // 1 year from now
+    Setamount(quotation.grand_total || quotation.amount_value || "");
+    setCategory("AMC");
+    setContractType("AMC");
+    setQuotationId(quotationId);
+  }
 };
 
 
@@ -140,6 +172,8 @@ const resetForm = () => {
   setInvoiceDueDate("");
   Setamount("");
   setCategory("Default");
+  setContractType("Service");
+  setQuotationId("");
 
   setIsEdit(false);
   setSelectedContractId(null);
@@ -307,6 +341,45 @@ const deletePayment = async (id) => {
                   className={`col-span-3 border rounded-md px-3 py-2 outline-none w-[100%]` } />
                 </div>
 
+              {/* Contract Type */}
+              <div className="grid grid-cols-4 items-center gap-6 ">
+                <label className="text-sm text-gray-600">
+                  Contract Type<span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="contract_type"
+                  value={contractType}
+                  onChange={(e) => setContractType(e.target.value)}
+                  className="col-span-3 border rounded-md px-3 py-2 outline-none bg-white"
+                >
+                  <option value="Service">Service Contract</option>
+                  <option value="AMC">AMC (Annual Maintenance Charge)</option>
+                  <option value="ALC">ALC (Annual Labour Charge)</option>
+                </select>
+              </div>
+
+              {/* Quotation Conversion */}
+              <div className="grid grid-cols-4 items-center gap-6 mt-[15px]">
+                <label className="text-sm text-gray-600">Convert from Quotation</label>
+                <select
+                  value={quotationId}
+                  onChange={(e) => {
+                    setQuotationId(e.target.value);
+                    if (e.target.value) {
+                      handleQuotationConversion(e.target.value);
+                    }
+                  }}
+                  className="col-span-3 border rounded-md px-3 py-2 outline-none bg-white"
+                >
+                  <option value="">Select Quotation (Optional)</option>
+                  {quotations.map(q => (
+                    <option key={q.id} value={q.id}>
+                      {q.customer_name} - {q.project_name} (₹{q.grand_total?.toLocaleString() || q.amount_value})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="grid grid-cols-4 items-center gap-6 ">
                 <label className="text-sm text-gray-600">
                   Category<span className="text-red-500">*</span>
@@ -318,6 +391,10 @@ const deletePayment = async (id) => {
                   className="col-span-3 border rounded-md px-3 py-2 outline-none bg-white"
                 >
                   <option value="Default">Default</option>
+                  <option value="AMC">AMC</option>
+                  <option value="ALC">ALC</option>
+                  <option value="Service">Service</option>
+                  <option value="Maintenance">Maintenance</option>
                 </select>
               </div>
 
@@ -357,15 +434,16 @@ const deletePayment = async (id) => {
         <div className="bg-white shadow rounded-xl overflow-x-auto mt-5 ">
         <table className="w-full text-sm border border-gray-300 table-fixed w-[130%]">
        <thead className="bg-[#f8faf9]">
-      <tr className="text-black font-[Times-New-Roman] uppercase text-xs ">
-        <th className="border px-4 py-3 text-center">ID</th>
-        <th className="border px-4 py-3">Date</th>
-        <th className="border px-4 py-3">Client</th>
-        <th className="border px-4 py-3 ">Contract Title</th>
-        <th className="border px-4 py-3">Value</th>
-        <th className="border px-4 py-3">Status</th>
-        <th className="border px-4 py-3  text-center">Actions</th>
-      </tr>
+        <tr className="text-black font-[Times-New-Roman] uppercase text-xs ">
+         <th className="border px-4 py-3 text-center">ID</th>
+         <th className="border px-4 py-3">Date</th>
+         <th className="border px-4 py-3">Client</th>
+         <th className="border px-4 py-3 ">Contract Title</th>
+         <th className="border px-4 py-3">Type</th>
+         <th className="border px-4 py-3">Value</th>
+         <th className="border px-4 py-3">Status</th>
+         <th className="border px-4 py-3  text-center">Actions</th>
+       </tr>
     </thead>
 
     <tbody className="text-sm font-[Times-New-Roman] text-center">
@@ -394,6 +472,15 @@ const deletePayment = async (id) => {
           {inv.template_names}
         </td>
 
+        <td className="border px-4 py-2">
+          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+            inv.contract_type === 'AMC' ? 'bg-blue-100 text-blue-700' :
+            inv.contract_type === 'ALC' ? 'bg-green-100 text-green-700' :
+            'bg-gray-100 text-gray-700'
+          }`}>
+            {inv.contract_type || 'Service'}
+          </span>
+        </td>
 
         <td className="border px-4 py-2">
           ₹{Number(inv.amount_value || 0).toFixed(2)}
